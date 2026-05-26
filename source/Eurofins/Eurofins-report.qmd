@@ -19,13 +19,19 @@ library(units) |> suppressPackageStartupMessages()
 
 
 
-## Data import and inspection
-
-The dataset contains three csv files.
+## 
 
 
+```{r data-import}
 
+library(readxl)
 
+data_eurofins <- read_excel(
+  here("data", "Eurofins_comparison", 
+       "Results_and_Standards_EUROFINS_N_SIMS.xlsx"),
+  sheet = "Results_EUROFINS"
+)
 
+```
 
 
