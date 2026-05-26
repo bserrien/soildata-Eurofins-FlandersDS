@@ -2,7 +2,7 @@
 title: "Exploratory analysis Flanders double-sampling study"
 format: 
   html:
-    keep-md: true
+    keep-md: false
 ---
 
 ## 
