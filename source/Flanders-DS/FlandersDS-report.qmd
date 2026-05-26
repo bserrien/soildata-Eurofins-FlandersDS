@@ -170,7 +170,7 @@ soildata_clean_fl_avg <- soildata_clean_fl %>%
   )
 ```
 
-### Bulk density
+### (3) Bulk density
 
 ```{r data-import3, message = F}
 bulkdens <- read_csv2(
@@ -201,7 +201,6 @@ bulkdens_clean <- bulkdens %>%
            ~ weighted.mean(.x, w = weights, na.rm = T))
   )
 ```
-
 
 ### Combine datasets and some further cleaning
 
@@ -242,9 +241,25 @@ summary(soildata_flds)
 
 ## Data exploration
 
+### Landuse & soil types
+
+Subgroup analyses within land-use and soil types will need to be restricted to groups with enough observations. 
+
+```{r}
+soildata_flds %>%
+  summarise(.by = FieldObs_LU, N = n_distinct(LUCAS_PlotID)) %>%
+  arrange(desc(N)) %>%
+  print(n = 5)
+
+soildata_flds %>%
+  summarise(.by = RSG, N = n_distinct(LUCAS_PlotID)) %>%
+  arrange(desc(N)) %>%
+  print(n = 15)
+```
+
 ### Comparing LUCAS & Cmon sampling schemes
 
-The graphs below show a scatter plot and loess smoother for the parameter measured with LUCAS vs. the Cmon (weighted average). The bisector is added for reference. Detection of outliers is performed with the Minimum Covariance Determinant (robust outlier detection; `performance` package).
+The graphs below show a scatter plot and loess smoother for the parameter measured with LUCAS vs. Cmon (weighted average). The bisector is added for reference. Detection of bivariate outliers is performed with the robust method Minimum Covariance Determinant (`performance` package). Not all the detected outliers will be influential for model fitting but may signal interesting differences between LUCAS and Cmon. Alternative: outlier detection with Bland-Altman analysis.
 
 ```{r comparing-lucas-cmon, warning = F, message = F}
 
@@ -287,29 +302,62 @@ compare_schemes <- function(vrb) {
 }
 
 # apply function
-compare_schemes("Sand")
-compare_schemes("Silt")
-compare_schemes("Clay")
-compare_schemes("TC")
-compare_schemes("TOC")
-compare_schemes("TIC")
-compare_schemes("TN")
-compare_schemes("pH_KCl_v_v")
-compare_schemes("pH_KCl_m_v")
-compare_schemes("pH_H20_m_v")
-compare_schemes("pH_H20_v_v")
-compare_schemes("pH_CaCl2_m_v")
-compare_schemes("pH_CaCl2_v_v")
-compare_schemes("EC_m_v")
-compare_schemes("EC_v_v")
+sapply(
+  FUN = compare_schemes,
+  X = c("Sand","Silt","Clay","TC","TOC","TIC","TN",
+        "pH_KCl_v_v","pH_KCl_m_v",
+        "pH_H20_m_v","pH_H20_v_v",
+        "pH_CaCl2_m_v","pH_CaCl2_v_v",
+        "EC_m_v","EC_v_v")
+)
 ```
 
+Question: For the comparison between Cmon and LUCAS; should a TF be developed to translate (predict) values between them or are descriptive statistics enough? Eg. Bland-Altman, Wilcox-test.
 
+```{r wilcox-Cmon-LUCAS}
+# to be decided: statistical comparison with a Wilcox test (location-shift)
+# => need to apply a multiple-comparison correction (15 variables tested)
+compare_schemes_wilcox <- function(vrb) {
+  data_wide <- soildata_flds %>%
+    select(LUCAS_PlotID, SampScheme, all_of(vrb)) %>%
+    mutate(across(all_of(vrb), ~ as.numeric(.x))) %>%
+    pivot_wider(names_from = SampScheme, values_from = all_of(vrb),
+                names_prefix = paste0(vrb, "_")) %>%
+    filter(
+      !is.na(.data[[paste0(vrb,"_Cmon")]]),
+      !is.na(.data[[paste0(vrb,"_LUCAS")]])
+    )
+  wilcox.test(
+    data_wide[[paste0(vrb,"_Cmon")]],
+    data_wide[[paste0(vrb,"_LUCAS")]],
+    paired = T, conf.int = T, correct = T,
+  ) %>% broom::tidy()
+}
+  
+# apply function
+sapply(
+  FUN = compare_schemes_wilcox,
+  X = c("Sand","Silt","Clay","TC","TOC","TIC","TN",
+        "pH_KCl_v_v","pH_KCl_m_v",
+        "pH_H20_m_v","pH_H20_v_v",
+        "pH_CaCl2_m_v","pH_CaCl2_v_v",
+        "EC_m_v","EC_v_v")
+) %>% t() %>%
+  as.data.frame() %>%
+  select(estimate, p.value, conf.low, conf.high) %>%
+  print(digits = 2)
+```
 
+### Transfer functions pH
 
+For this analysis we don't need the averaged Cmon data because we need to compare methods that are measured at each depth, but depth could play the role of a covariate if necessary. Strong correlations (>= .99) are observed between all pairs of pH measurement methods (>= .98 when using Spearman instead of Pearson).  
 
+```{r scatmat, warning = F}
+soildata_clean_fl %>%
+  select(contains("pH")) %>%
+  GGally::ggscatmat(corMethod = c("pearson"))
+```
 
-
-
+## How to use these data in the simulation experiment?
 
 

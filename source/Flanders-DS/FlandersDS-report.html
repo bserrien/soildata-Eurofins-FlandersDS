@@ -104,6 +104,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="section" class="level2">
 <h2 class="anchored" data-anchor-id="section"></h2>
 <p>This short report contains my exploratory work with the Flanders double-sampling study and contains some questions on how the data should be used.</p>
+</section>
+<section id="data-import-and-inspection" class="level2">
+<h2 class="anchored" data-anchor-id="data-import-and-inspection">Data import and inspection</h2>
+<p>The dataset contains three csv files.</p>
+<section id="sampling-points" class="level3">
+<h3 class="anchored" data-anchor-id="sampling-points">(1) Sampling points</h3>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>folder_flds <span class="ot">&lt;-</span> <span class="fu">here</span>(<span class="st">"data"</span>, <span class="st">"Flanders_Double_Sampling_Data"</span>)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -114,7 +120,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">delim =</span> <span class="st">";"</span>,</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">col_types =</span> <span class="fu">cols</span>(</span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># import as characters to fix issues with different notation:</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># part of the dataset uses . as decimal character and other part uses ,</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># both . and , are used as decimal character ???</span></span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">WGS84Latitude =</span> <span class="fu">col_character</span>(),</span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">WGS84Longitude =</span> <span class="fu">col_character</span>(),</span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">Elevation =</span> <span class="fu">col_character</span>()</span>
@@ -137,6 +143,793 @@ $ Bio_Point      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 $ LUCAS2018      &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0…</code></pre>
 </div>
 </div>
+<p>Little data cleaning and formatting as <code>sf</code> object:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sampling_points_clean <span class="ot">&lt;-</span> sampling_points <span class="sc">%&gt;%</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">across</span>(<span class="fu">c</span>(WGS84Latitude, WGS84Longitude, Elevation), </span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>           <span class="sc">~</span> <span class="fu">as.numeric</span>(<span class="fu">gsub</span>(<span class="st">","</span>, <span class="st">"."</span>, .x)))</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_as_sf</span>(<span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"WGS84Longitude"</span>, <span class="st">"WGS84Latitude"</span>),</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>           <span class="at">crs =</span> <span class="st">"WGS84"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(LUCAS_PlotID, Town, Elevation, <span class="fu">contains</span>(<span class="st">"LU"</span>), RSG, Bio_Point)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(sampling_points_clean)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 166
+Columns: 9
+$ LUCAS_PlotID &lt;dbl&gt; 38723090, 38883112, 38923094, 38983120, 39283116, 3932311…
+$ Town         &lt;chr&gt; "Ronse", "Oosterzele", "Geraardsbergen", "Berlare", "Kape…
+$ Elevation    &lt;dbl&gt; 53.3, 32.6, 15.3, 2.8, 6.7, 4.6, 4.4, 3.9, 31.0, 13.9, 32…
+$ FieldObs_LU  &lt;chr&gt; "Woodland", "Woodland", "Woodland", "Woodland", "Woodland…
+$ LUCAS_LU     &lt;chr&gt; "Woodland", "Woodland", "Woodland", "Woodland", "Woodland…
+$ LUCAS2018    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, …
+$ RSG          &lt;chr&gt; "Retisols", "Stagnosols", "Cambisols", "Phaeozems", "Phae…
+$ Bio_Point    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …
+$ geometry     &lt;POINT [°]&gt; POINT (3.629459 50.74562), POINT (3.829376 50.95486…</code></pre>
+</div>
+</div>
+<p>Five data points lie in Wallonia and 1 in Brussels. Question: Do we need to retain them for the comparison of sampling schemes (LUCAS vs.&nbsp;Cmon)?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># import provinces of Flanders</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>ogc_vrbg <span class="ot">&lt;-</span> <span class="st">"https://geo.api.vlaanderen.be/VRBG2025/ogc/features/v1/"</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>provinces <span class="ot">&lt;-</span> <span class="fu">get_feature_ogc</span>(</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">url =</span> ogc_vrbg,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">collection =</span> <span class="st">"Refprv"</span>,</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">crs =</span> <span class="st">"EPSG:31370"</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span> <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="st">"WGS84"</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co"># print points outside Flanders</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>outside_idx <span class="ot">&lt;-</span> <span class="fu">st_disjoint</span>(</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  sampling_points_clean, </span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_union</span>(provinces), </span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">sparse =</span> <span class="cn">FALSE</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>sampling_points_clean[outside_idx, ] <span class="sc">%&gt;%</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(Town) <span class="sc">%&gt;%</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 1
+  Town               
+  &lt;chr&gt;              
+1 Sint-Jans-Molenbeek
+2 Cerfontaine        
+3 Sombreffe          
+4 Seneffe            
+5 Genappe            
+6 Burdinne           </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># filter on points inside Flanders (N = 160)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>sampling_points_fl <span class="ot">&lt;-</span> <span class="fu">st_filter</span>(</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  sampling_points_clean,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  provinces</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> provinces) <span class="sc">+</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> sampling_points_fl)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/data-cleaning2-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="soildata" class="level3">
+<h3 class="anchored" data-anchor-id="soildata">(2) Soildata</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>soildata <span class="ot">&lt;-</span> <span class="fu">read_csv2</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">here</span>(folder_flds,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>       <span class="st">"EJPsoil_LUCAS22_Double_sampling_BE_Flanders_Soildata.csv"</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(soildata)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 559
+Columns: 22
+$ LUCAS_PlotID  &lt;dbl&gt; 38043130, 38043130, 38043130, 38083120, 38083120, 380831…
+$ FieldSampleID &lt;chr&gt; "38043130_0-10", "38043130_10-30", "38043130_LUCAS", "38…
+$ LabSampleID   &lt;chr&gt; "23-003424", "23-003425", "23-003426", "23-003430", "23-…
+$ SampScheme    &lt;chr&gt; "Cmon", "Cmon", "LUCAS", "Cmon", "Cmon", "LUCAS", "Cmon"…
+$ Matrix        &lt;chr&gt; "Mineral", "Mineral", "Mineral", "Mineral", "Mineral", "…
+$ Depth         &lt;chr&gt; "0-10", "okt/30", "0-30", "0-10", "okt/30", "0-30", "0-1…
+$ Thickness     &lt;dbl&gt; 10, 20, 30, 10, 20, 30, 10, 20, 30, 10, 20, 30, 10, 20, …
+$ Sand          &lt;dbl&gt; 38.20, 40.30, 43.30, 39.90, 22.80, 40.90, 34.40, 37.20, …
+$ Silt          &lt;dbl&gt; 41.00, 42.70, 43.10, 46.70, 67.90, 46.70, 50.10, 49.70, …
+$ Clay          &lt;dbl&gt; 20.80, 17.00, 13.60, 13.30, 9.30, 12.40, 15.60, 13.20, 1…
+$ TC            &lt;dbl&gt; 18.7, 19.3, 19.6, 13.7, 13.2, 14.7, 29.9, 12.8, 21.2, 28…
+$ TIC           &lt;dbl&gt; 7.21, 7.24, 7.25, NA, NA, NA, NA, NA, NA, 9.19, 8.27, 14…
+$ TOC           &lt;dbl&gt; 11.46, 12.03, 12.36, 13.68, 13.16, 14.70, 29.94, 12.80, …
+$ TN            &lt;dbl&gt; 1.21, 1.25, 1.30, 1.49, 1.45, 1.61, 3.04, 1.34, 2.16, 1.…
+$ pH_KCl_v_v    &lt;dbl&gt; 7.61, 7.54, 7.69, 5.84, 5.13, 6.14, 4.80, 4.60, 4.29, 7.…
+$ EC_m_v        &lt;dbl&gt; 116.67, 126.09, 111.66, NA, NA, NA, NA, NA, NA, 149.51, …
+$ EC_v_v        &lt;dbl&gt; 96.95, 104.83, 98.67, NA, NA, NA, NA, NA, NA, 136.87, 15…
+$ pH_H20_m_v    &lt;dbl&gt; 8.39, 8.36, 8.38, NA, NA, NA, NA, NA, NA, 8.34, 8.38, 8.…
+$ pH_H20_v_v    &lt;dbl&gt; 8.32, 8.27, 8.26, NA, NA, NA, NA, NA, NA, 8.20, 8.38, 8.…
+$ pH_KCl_m_v    &lt;dbl&gt; 7.51, 7.48, 7.59, NA, NA, NA, NA, NA, NA, 7.54, 7.59, 7.…
+$ pH_CaCl2_m_v  &lt;dbl&gt; 7.600, 7.570, 7.410, NA, NA, NA, NA, NA, NA, 7.650, 7.69…
+$ pH_CaCl2_v_v  &lt;dbl&gt; 7.49, 7.46, 7.48, NA, NA, NA, NA, NA, NA, 7.50, 7.68, 7.…</code></pre>
+</div>
+</div>
+<p>Little data cleaning step and filtering observations. Questions/remarks: Do we need to retain the data from the strooisel-laag? There is 1 plot with 6 observations, are these partial duplicates? There are two points that are listed in the previous csv file but have no corresponding records in the soildata csv.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Depth data were formatted as a date (probably a setting from Excel/GSheet?)</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>soildata_clean <span class="ot">&lt;-</span> soildata <span class="sc">%&gt;%</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">Depth =</span> <span class="fu">case_when</span>(Depth <span class="sc">==</span> <span class="st">"okt/30"</span> <span class="sc">~</span> <span class="st">"10-30"</span>, </span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>                      <span class="cn">TRUE</span> <span class="sc">~</span> Depth)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 136 plots have 3 observations (2*Cmon + 1*LUCAS), 29 plots have 5 observations (mineral + organic matrix) and 1 plot has 6 observations (partial duplicates?)</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>soildata_clean <span class="sc">%&gt;%</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">.by =</span> LUCAS_PlotID, <span class="at">N =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">.by =</span> N, <span class="at">plots =</span> <span class="fu">n</span>())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 2
+      N plots
+  &lt;int&gt; &lt;int&gt;
+1     3   136
+2     5    29
+3     6     1</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># selecting soildata: remove strooisel-laag, keep only points in Flanders and remove partial duplicates</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>soildata_clean_fl <span class="ot">&lt;-</span> soildata_clean <span class="sc">%&gt;%</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="sc">!</span><span class="fu">grepl</span>(<span class="st">"strooisel"</span>, <span class="fu">tolower</span>(FieldSampleID)),</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    LUCAS_PlotID <span class="sc">%in%</span> sampling_points_fl<span class="sc">$</span>LUCAS_PlotID</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(LUCAS_PlotID, Depth, <span class="at">.keep_all =</span> T)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co"># there are 2 points that appear in the sampling_points object but that don't appear in the soildata:</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>sampling_points_fl <span class="sc">%&gt;%</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span>(LUCAS_PlotID <span class="sc">%in%</span> soildata_clean_fl<span class="sc">$</span>LUCAS_PlotID)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(LUCAS_PlotID, Town) <span class="sc">%&gt;%</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 2
+  LUCAS_PlotID Town      
+         &lt;dbl&gt; &lt;chr&gt;     
+1     38463096 Kortrijk  
+2     39743098 Kortenaken</code></pre>
+</div>
+</div>
+<p>Question: Why are some TOC values sometimes larger than TC? (is TC not the sum of TOC and TIC?; is there a rounding issue?) Missing values in TIC when TC and TOC are both observed, can you just use TC - TOC as imputed value?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>soildata_clean_fl <span class="sc">%&gt;%</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">TC  =</span> janitor<span class="sc">::</span><span class="fu">round_half_up</span>(TC, <span class="dv">1</span>),</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">TOC =</span> janitor<span class="sc">::</span><span class="fu">round_half_up</span>(TOC, <span class="dv">1</span>),</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">TIC =</span> janitor<span class="sc">::</span><span class="fu">round_half_up</span>(TIC, <span class="dv">1</span>)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(TOC <span class="sc">&gt;</span> TC) <span class="sc">%&gt;%</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(LUCAS_PlotID, TC, TOC, TIC)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 16 × 4
+   LUCAS_PlotID    TC   TOC   TIC
+          &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+ 1     38363144  25.8  25.9    NA
+ 2     38363148  21.6  21.7    NA
+ 3     38703142  24.9  25      NA
+ 4     39323116  31.9  32      NA
+ 5     39423090   7     7.1    NA
+ 6     39463128  13.5  13.6    NA
+ 7     39503150  18.3  18.4    NA
+ 8     39823134  31.2  31.3    NA
+ 9     39823144  17    17.1    NA
+10     39963138  20.1  20.2    NA
+11     40043090  28    28.1    NA
+12     40043090  15.9  16      NA
+13     40043108  12.1  12.2    NA
+14     40043130  56    56.1    NA
+15     40163108  19.1  19.2    NA
+16     40203120  53.3  53.4    NA</code></pre>
+</div>
+</div>
+<p>Question: To compare LUCAS vs.&nbsp;Cmon, should we combine the two Cmon measurements? Can you take the weighted average of the 0-10 cm sample and the 10-30 cm sample (with respective weights 1/3 and 2/3) to get an average for the 0-30 cm depth?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># weighted average for Cmon sampling scheme:</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>soildata_clean_fl_avg <span class="ot">&lt;-</span> soildata_clean_fl <span class="sc">%&gt;%</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">weights =</span> <span class="fu">case_when</span>(Depth <span class="sc">==</span> <span class="st">"0-10"</span>  <span class="sc">~</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">3</span>,</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>                        Depth <span class="sc">==</span> <span class="st">"10-30"</span> <span class="sc">~</span> <span class="dv">2</span><span class="sc">/</span><span class="dv">3</span>,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>                        Depth <span class="sc">==</span> <span class="st">"0-30"</span>  <span class="sc">~</span> <span class="dv">1</span>),</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">.after =</span> Depth</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">.by =</span> <span class="fu">c</span>(LUCAS_PlotID, SampScheme, Matrix),</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">Depth =</span> <span class="st">"0-30"</span>,</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">Thickness =</span> <span class="fu">sum</span>(Thickness),</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">across</span>(<span class="fu">c</span>(Sand, Silt, Clay, TC, TIC, TOC, TN, </span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>             <span class="fu">contains</span>(<span class="st">"pH"</span>), <span class="fu">contains</span>(<span class="st">"EC"</span>)), </span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>           <span class="sc">~</span> <span class="fu">weighted.mean</span>(.x, <span class="at">w =</span> weights, <span class="at">na.rm =</span> T))</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">across</span>(<span class="fu">c</span>(Sand, Silt, Clay, TC, TIC, TOC, TN, </span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>             <span class="fu">contains</span>(<span class="st">"pH"</span>), <span class="fu">contains</span>(<span class="st">"EC"</span>)),</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>           <span class="sc">~</span> <span class="fu">replace_when</span>(.x, <span class="fu">is.nan</span>(.x) <span class="sc">~</span> <span class="cn">NA_real_</span>))</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="bulk-density" class="level3">
+<h3 class="anchored" data-anchor-id="bulk-density">(3) Bulk density</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>bulkdens <span class="ot">&lt;-</span> <span class="fu">read_csv2</span>(</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">here</span>(folder_flds,</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>       <span class="st">"EJPsoil_LUCAS22_Double_sampling_BE_Flanders_Bulk_density.csv"</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(bulkdens)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 331
+Columns: 8
+$ LUCAS_PlotID  &lt;dbl&gt; 29723114, 29723114, 38043130, 38043130, 38083120, 380831…
+$ LayerID       &lt;chr&gt; "29723114_0-10 cm", "29723114_10-30 cm", "38043130_0-10 …
+$ Depth         &lt;chr&gt; "0-10", "10-30", "0-10", "10-30", "0-10", "10-30", "0-10…
+$ BD_mean       &lt;chr&gt; "1.55", "1.63", "1.51", "1.50", "1.44", "1.50", "1.35", …
+$ BD_sd         &lt;chr&gt; "0.087", "0.075", "0.014", "0.053", "0.035", "0.013", "0…
+$ BD_CV         &lt;chr&gt; "5.65", "4.62", "0.94", "3.50", "2.43", "0.84", "6.45", …
+$ SWC_volp_mean &lt;dbl&gt; 1373, 1325, 4698, 4778, 4765, 4605, 4243, 3978, 5175, 51…
+$ SWC_volp_sd   &lt;chr&gt; "2.31", "1.59", "1.29", "2.10", "0.50", "0.89", "3.59", …</code></pre>
+</div>
+</div>
+<p>Little data cleaning step and weighted-average:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>bulkdens_clean <span class="ot">&lt;-</span> bulkdens <span class="sc">%&gt;%</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">across</span>(<span class="fu">c</span>(<span class="fu">contains</span>(<span class="st">"BD_"</span>), <span class="fu">contains</span>(<span class="st">"SWC_"</span>)), <span class="sc">~</span> <span class="fu">as.numeric</span>(.x))</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">weights =</span> <span class="fu">case_when</span>(Depth <span class="sc">==</span> <span class="st">"0-10"</span>  <span class="sc">~</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">3</span>,</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>                        Depth <span class="sc">==</span> <span class="st">"10-30"</span> <span class="sc">~</span> <span class="dv">2</span><span class="sc">/</span><span class="dv">3</span>,</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>                        Depth <span class="sc">==</span> <span class="st">"0-30"</span>  <span class="sc">~</span> <span class="dv">1</span>),</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">.after =</span> Depth</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">.by =</span> LUCAS_PlotID,</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">Depth =</span> <span class="st">"0-30"</span>,</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">SampScheme =</span> <span class="st">"Cmon"</span>,</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">across</span>(<span class="fu">c</span>(<span class="fu">contains</span>(<span class="st">"BD_"</span>), <span class="fu">contains</span>(<span class="st">"SWC_"</span>)), </span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>           <span class="sc">~</span> <span class="fu">weighted.mean</span>(.x, <span class="at">w =</span> weights, <span class="at">na.rm =</span> T))</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="combine-datasets-and-some-further-cleaning" class="level3">
+<h3 class="anchored" data-anchor-id="combine-datasets-and-some-further-cleaning">Combine datasets and some further cleaning</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>soildata_flds <span class="ot">&lt;-</span> soildata_clean_fl_avg <span class="sc">%&gt;%</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(sampling_points_fl, <span class="at">by =</span> <span class="st">"LUCAS_PlotID"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(bulkdens_clean, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"LUCAS_PlotID"</span>,<span class="st">"Depth"</span>,<span class="st">"SampScheme"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    LUCAS_PlotID, Town, Elevation, geometry, LUCAS_LU, FieldObs_LU, RSG, </span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">#FieldSampleID, LabSampleID, </span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    SampScheme, Depth, Matrix,       </span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    Thickness, Sand, Silt, Clay, TC, TIC, TOC, TN, </span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">contains</span>(<span class="st">"pH_"</span>), <span class="fu">contains</span>(<span class="st">"EC_"</span>),</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">#LayerID, </span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    BD_mean, BD_sd, BD_CV, SWC_volp_mean, SWC_volp_sd</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">Thickness =</span> <span class="fu">set_units</span>(Thickness, <span class="st">"cm"</span>),</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">Elevation =</span> <span class="fu">set_units</span>(Elevation, <span class="st">"m"</span>),</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">Sand =</span> <span class="fu">set_units</span>(Sand, <span class="st">"%"</span>),</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">Silt =</span> <span class="fu">set_units</span>(Silt, <span class="st">"%"</span>),</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">Clay =</span> <span class="fu">set_units</span>(Clay, <span class="st">"%"</span>),</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">TC =</span> <span class="fu">set_units</span>(TC, <span class="st">"g/kg"</span>),</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">TIC =</span> <span class="fu">set_units</span>(TIC, <span class="st">"g/kg"</span>),</span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">TOC =</span> <span class="fu">set_units</span>(TOC, <span class="st">"g/kg"</span>),</span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">TN =</span> <span class="fu">set_units</span>(TN, <span class="st">"g/kg"</span>),</span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">EC_m_v =</span> <span class="fu">set_units</span>(EC_m_v, <span class="st">"µS/cm"</span>),</span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">EC_v_v =</span> <span class="fu">set_units</span>(EC_v_v, <span class="st">"µS/cm"</span>),</span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">BD_mean =</span> <span class="fu">set_units</span>(BD_mean, <span class="st">"g/cm³"</span>),</span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">BD_sd =</span> <span class="fu">set_units</span>(BD_sd, <span class="st">"g/cm³"</span>),</span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">BD_CV =</span> <span class="fu">set_units</span>(BD_CV, <span class="st">"g/cm³"</span>),</span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">SWC_volp_mean =</span> <span class="fu">set_units</span>(SWC_volp_mean, <span class="st">"%"</span>),</span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">SWC_volp_sd =</span> <span class="fu">set_units</span>(SWC_volp_sd, <span class="st">"%"</span>)</span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(soildata_flds)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  LUCAS_PlotID             Town       Elevation               geometry  
+ Min.   :38043130   Length   :316   Min.   :  0.90   POINT        :316  
+ 1st Qu.:38683138   N.unique :123   1st Qu.: 10.60   epsg:4326    :  0  
+ Median :39373116   N.blank  :  0   Median : 24.35   +proj=long...:  0  
+ Mean   :39229448   Min.nchar:  3   Mean   : 31.07                      
+ 3rd Qu.:39743148   Max.nchar: 21   3rd Qu.: 44.20                      
+ Max.   :40223060                   Max.   :123.00                      
+                                                                        
+      LUCAS_LU      FieldObs_LU         RSG          SampScheme 
+ Length   :316   Length   :316   Length   :316   Length   :316  
+ N.unique :  5   N.unique :  5   N.unique : 13   N.unique :  2  
+ N.blank  :  0   N.blank  :  0   N.blank  :  0   N.blank  :  0  
+ Min.nchar:  7   Min.nchar:  7   Min.nchar:  7   Min.nchar:  4  
+ Max.nchar: 10   Max.nchar:  9   Max.nchar: 10   Max.nchar:  5  
+                                                                
+                                                                
+       Depth           Matrix      Thickness       Sand            Silt      
+ Length   :316   Length   :316   Min.   :30   Min.   : 3.60   Min.   : 1.70  
+ N.unique :  1   N.unique :  1   1st Qu.:30   1st Qu.:19.65   1st Qu.:15.53  
+ N.blank  :  0   N.blank  :  0   Median :30   Median :49.78   Median :33.38  
+ Min.nchar:  4   Min.nchar:  7   Mean   :30   Mean   :49.53   Mean   :36.32  
+ Max.nchar:  4   Max.nchar:  7   3rd Qu.:30   3rd Qu.:77.55   3rd Qu.:56.82  
+                                 Max.   :30   Max.   :95.50   Max.   :78.90  
+                                                                             
+      Clay              TC              TIC               TOC       
+ Min.   : 1.967   Min.   :  2.40   Min.   : 0.1000   Min.   : 2.37  
+ 1st Qu.: 6.638   1st Qu.: 13.62   1st Qu.: 0.1567   1st Qu.:13.46  
+ Median :13.483   Median : 19.10   Median : 0.5500   Median :18.94  
+ Mean   :14.141   Mean   : 23.30   Mean   : 3.1703   Mean   :22.56  
+ 3rd Qu.:18.775   3rd Qu.: 26.65   3rd Qu.: 2.5600   3rd Qu.:26.24  
+ Max.   :49.200   Max.   :134.50   Max.   :48.8300   Max.   :88.68  
+                                   NAs    :241                      
+       TN          pH_KCl_v_v      pH_H20_m_v      pH_H20_v_v   
+ Min.   :0.140   Min.   :2.750   Min.   :3.830   Min.   :3.800  
+ 1st Qu.:1.133   1st Qu.:4.310   1st Qu.:4.860   1st Qu.:4.910  
+ Median :1.467   Median :5.083   Median :6.055   Median :6.080  
+ Mean   :1.801   Mean   :5.208   Mean   :6.031   Mean   :5.999  
+ 3rd Qu.:2.133   3rd Qu.:6.140   3rd Qu.:7.114   3rd Qu.:7.120  
+ Max.   :8.370   Max.   :7.940   Max.   :8.440   Max.   :8.360  
+                                 NAs    :174     NAs    :173    
+   pH_KCl_m_v     pH_CaCl2_m_v    pH_CaCl2_v_v       EC_m_v       
+ Min.   :2.690   Min.   :3.185   Min.   :2.900   Min.   :  23.98  
+ 1st Qu.:3.840   1st Qu.:4.044   1st Qu.:4.065   1st Qu.:  52.95  
+ Median :5.030   Median :5.280   Median :5.330   Median :  83.56  
+ Mean   :5.088   Mean   :5.296   Mean   :5.294   Mean   : 110.85  
+ 3rd Qu.:6.282   3rd Qu.:6.383   3rd Qu.:6.450   3rd Qu.: 117.51  
+ Max.   :7.770   Max.   :7.820   Max.   :7.790   Max.   :1026.34  
+ NAs    :180     NAs    :174     NAs    :173     NAs    :173      
+     EC_v_v           BD_mean          BD_sd             BD_CV        
+ Min.   :  19.01   Min.   :0.490   Min.   :0.01200   Min.   : 0.7933  
+ 1st Qu.:  42.39   1st Qu.:1.283   1st Qu.:0.05967   1st Qu.: 4.2300  
+ Median :  63.62   Median :1.407   Median :0.08667   Median : 6.4467  
+ Mean   :  93.91   Mean   :1.359   Mean   :0.10018   Mean   : 8.2955  
+ 3rd Qu.:  95.72   3rd Qu.:1.483   3rd Qu.:0.12333   3rd Qu.: 9.7933  
+ Max.   :1093.39   Max.   :1.703   Max.   :0.44667   Max.   :77.5433  
+ NAs    :174       NAs    :163     NAs    :163       NAs    :163      
+ SWC_volp_mean    SWC_volp_sd    
+ Min.   :-2495   Min.   : 0.500  
+ 1st Qu.: 1681   1st Qu.: 1.647  
+ Median : 2773   Median : 2.710  
+ Mean   : 2819   Mean   : 4.125  
+ 3rd Qu.: 3793   3rd Qu.: 4.477  
+ Max.   : 7194   Max.   :83.997  
+ NAs    :163     NAs    :163     </code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="data-exploration" class="level2">
+<h2 class="anchored" data-anchor-id="data-exploration">Data exploration</h2>
+<section id="landuse-soil-types" class="level3">
+<h3 class="anchored" data-anchor-id="landuse-soil-types">Landuse &amp; soil types</h3>
+<p>Subgroup analyses within land-use and soil types will need to be restricted to groups with enough observations.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>soildata_flds <span class="sc">%&gt;%</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">.by =</span> FieldObs_LU, <span class="at">N =</span> <span class="fu">n_distinct</span>(LUCAS_PlotID)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(N)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="at">n =</span> <span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 5 × 2
+  FieldObs_LU     N
+  &lt;chr&gt;       &lt;int&gt;
+1 Cropland       61
+2 Grassland      51
+3 Woodland       41
+4 Wetland         4
+5 Orchard         1</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>soildata_flds <span class="sc">%&gt;%</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">.by =</span> RSG, <span class="at">N =</span> <span class="fu">n_distinct</span>(LUCAS_PlotID)) <span class="sc">%&gt;%</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(N)) <span class="sc">%&gt;%</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="at">n =</span> <span class="dv">15</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 13 × 2
+   RSG            N
+   &lt;chr&gt;      &lt;int&gt;
+ 1 Cambisols     41
+ 2 Luvisols      23
+ 3 Retisols      19
+ 4 Anthrosols    19
+ 5 Podzols       17
+ 6 Umbrisols      8
+ 7 Phaeozems      7
+ 8 Stagnosols     6
+ 9 Arenosols      6
+10 Gleysols       5
+11 Technosols     3
+12 Planosols      2
+13 Regosols       2</code></pre>
+</div>
+</div>
+</section>
+<section id="comparing-lucas-cmon-sampling-schemes" class="level3">
+<h3 class="anchored" data-anchor-id="comparing-lucas-cmon-sampling-schemes">Comparing LUCAS &amp; Cmon sampling schemes</h3>
+<p>The graphs below show a scatter plot and loess smoother for the parameter measured with LUCAS vs.&nbsp;Cmon (weighted average). The bisector is added for reference. Detection of bivariate outliers is performed with the robust method Minimum Covariance Determinant (<code>performance</code> package). Not all the detected outliers will be influential for model fitting but may signal interesting differences between LUCAS and Cmon. Alternative: outlier detection with Bland-Altman analysis.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># plot + outlier detection with Minimum Covariance Determinant</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>compare_schemes <span class="ot">&lt;-</span> <span class="cf">function</span>(vrb) {</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  data_wide <span class="ot">&lt;-</span> soildata_flds <span class="sc">%&gt;%</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(LUCAS_PlotID, SampScheme, <span class="fu">all_of</span>(vrb)) <span class="sc">%&gt;%</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> SampScheme, <span class="at">values_from =</span> <span class="fu">all_of</span>(vrb),</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>                <span class="at">names_prefix =</span> <span class="fu">paste0</span>(vrb, <span class="st">"_"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>      <span class="sc">!</span><span class="fu">is.na</span>(.data[[<span class="fu">paste0</span>(vrb,<span class="st">"_Cmon"</span>)]]),</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>      <span class="sc">!</span><span class="fu">is.na</span>(.data[[<span class="fu">paste0</span>(vrb,<span class="st">"_LUCAS"</span>)]])</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>    ) </span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>  outl <span class="ot">&lt;-</span> performance<span class="sc">::</span><span class="fu">check_outliers</span>(</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>    data_wide <span class="sc">%&gt;%</span> </span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>      <span class="fu">select</span>(<span class="sc">-</span>LUCAS_PlotID), </span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"mcd"</span>, <span class="at">percentage_central =</span> .<span class="dv">75</span>,</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">verbose =</span> <span class="cn">TRUE</span></span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>  data_wide<span class="sc">$</span>outlier <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>  data_wide<span class="sc">$</span>outlier[<span class="fu">which</span>(outl)] <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>  data_wide <span class="sc">%&gt;%</span></span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>      <span class="at">lab_outl =</span> <span class="fu">case_when</span>(outlier <span class="sc">~</span> LUCAS_PlotID, <span class="cn">TRUE</span> <span class="sc">~</span> <span class="cn">NA_real_</span>)</span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span></span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(.data[[<span class="fu">paste0</span>(vrb,<span class="st">"_Cmon"</span>)]], </span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>               .data[[<span class="fu">paste0</span>(vrb,<span class="st">"_LUCAS"</span>)]], </span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>               <span class="at">color =</span> outlier)) <span class="sc">+</span></span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_smooth</span>(</span>
+<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>      <span class="at">inherit.aes =</span> F,</span>
+<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>      <span class="fu">aes</span>(.data[[<span class="fu">paste0</span>(vrb,<span class="st">"_Cmon"</span>)]], </span>
+<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a>               .data[[<span class="fu">paste0</span>(vrb,<span class="st">"_LUCAS"</span>)]]),</span>
+<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a>      <span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">color =</span> <span class="st">"grey"</span></span>
+<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb26-34"><a href="#cb26-34" aria-hidden="true" tabindex="-1"></a>    ggrepel<span class="sc">::</span><span class="fu">geom_text_repel</span>(<span class="fu">aes</span>(<span class="at">label =</span> lab_outl), <span class="at">show.legend =</span> F,</span>
+<span id="cb26-35"><a href="#cb26-35" aria-hidden="true" tabindex="-1"></a>                             <span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb26-36"><a href="#cb26-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">lty =</span> <span class="dv">2</span>)</span>
+<span id="cb26-37"><a href="#cb26-37" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb26-38"><a href="#cb26-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-39"><a href="#cb26-39" aria-hidden="true" tabindex="-1"></a><span class="co"># apply function</span></span>
+<span id="cb26-40"><a href="#cb26-40" aria-hidden="true" tabindex="-1"></a><span class="fu">sapply</span>(</span>
+<span id="cb26-41"><a href="#cb26-41" aria-hidden="true" tabindex="-1"></a>  <span class="at">FUN =</span> compare_schemes,</span>
+<span id="cb26-42"><a href="#cb26-42" aria-hidden="true" tabindex="-1"></a>  <span class="at">X =</span> <span class="fu">c</span>(<span class="st">"Sand"</span>,<span class="st">"Silt"</span>,<span class="st">"Clay"</span>,<span class="st">"TC"</span>,<span class="st">"TOC"</span>,<span class="st">"TIC"</span>,<span class="st">"TN"</span>,</span>
+<span id="cb26-43"><a href="#cb26-43" aria-hidden="true" tabindex="-1"></a>        <span class="st">"pH_KCl_v_v"</span>,<span class="st">"pH_KCl_m_v"</span>,</span>
+<span id="cb26-44"><a href="#cb26-44" aria-hidden="true" tabindex="-1"></a>        <span class="st">"pH_H20_m_v"</span>,<span class="st">"pH_H20_v_v"</span>,</span>
+<span id="cb26-45"><a href="#cb26-45" aria-hidden="true" tabindex="-1"></a>        <span class="st">"pH_CaCl2_m_v"</span>,<span class="st">"pH_CaCl2_v_v"</span>,</span>
+<span id="cb26-46"><a href="#cb26-46" aria-hidden="true" tabindex="-1"></a>        <span class="st">"EC_m_v"</span>,<span class="st">"EC_v_v"</span>)</span>
+<span id="cb26-47"><a href="#cb26-47" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$Sand</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/comparing-lucas-cmon-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+$Silt</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/comparing-lucas-cmon-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+$Clay</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/comparing-lucas-cmon-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+$TC</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/comparing-lucas-cmon-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+$TOC</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/comparing-lucas-cmon-5.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+$TIC</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/comparing-lucas-cmon-6.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+$TN</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/comparing-lucas-cmon-7.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+$pH_KCl_v_v</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/comparing-lucas-cmon-8.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+$pH_KCl_m_v</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/comparing-lucas-cmon-9.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+$pH_H20_m_v</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/comparing-lucas-cmon-10.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+$pH_H20_v_v</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/comparing-lucas-cmon-11.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+$pH_CaCl2_m_v</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/comparing-lucas-cmon-12.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+$pH_CaCl2_v_v</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/comparing-lucas-cmon-13.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+$EC_m_v</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/comparing-lucas-cmon-14.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+$EC_v_v</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/comparing-lucas-cmon-15.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Question: For the comparison between Cmon and LUCAS; should a TF be developed to translate (predict) values between them or are descriptive statistics enough? Eg. Bland-Altman, Wilcox-test.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>compare_schemes_wilcox <span class="ot">&lt;-</span> <span class="cf">function</span>(vrb) {</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  data_wide <span class="ot">&lt;-</span> soildata_flds <span class="sc">%&gt;%</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(LUCAS_PlotID, SampScheme, <span class="fu">all_of</span>(vrb)) <span class="sc">%&gt;%</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">all_of</span>(vrb), <span class="sc">~</span> <span class="fu">as.numeric</span>(.x))) <span class="sc">%&gt;%</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> SampScheme, <span class="at">values_from =</span> <span class="fu">all_of</span>(vrb),</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>                <span class="at">names_prefix =</span> <span class="fu">paste0</span>(vrb, <span class="st">"_"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(</span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>      <span class="sc">!</span><span class="fu">is.na</span>(.data[[<span class="fu">paste0</span>(vrb,<span class="st">"_Cmon"</span>)]]),</span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>      <span class="sc">!</span><span class="fu">is.na</span>(.data[[<span class="fu">paste0</span>(vrb,<span class="st">"_LUCAS"</span>)]])</span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">wilcox.test</span>(</span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>    data_wide[[<span class="fu">paste0</span>(vrb,<span class="st">"_Cmon"</span>)]],</span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>    data_wide[[<span class="fu">paste0</span>(vrb,<span class="st">"_LUCAS"</span>)]],</span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">paired =</span> T</span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a><span class="co"># apply function</span></span>
+<span id="cb42-19"><a href="#cb42-19" aria-hidden="true" tabindex="-1"></a><span class="fu">sapply</span>(</span>
+<span id="cb42-20"><a href="#cb42-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">FUN =</span> compare_schemes_wilcox,</span>
+<span id="cb42-21"><a href="#cb42-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">X =</span> <span class="fu">c</span>(<span class="st">"Sand"</span>,<span class="st">"Silt"</span>,<span class="st">"Clay"</span>,<span class="st">"TC"</span>,<span class="st">"TOC"</span>,<span class="st">"TIC"</span>,<span class="st">"TN"</span>,</span>
+<span id="cb42-22"><a href="#cb42-22" aria-hidden="true" tabindex="-1"></a>        <span class="st">"pH_KCl_v_v"</span>,<span class="st">"pH_KCl_m_v"</span>,</span>
+<span id="cb42-23"><a href="#cb42-23" aria-hidden="true" tabindex="-1"></a>        <span class="st">"pH_H20_m_v"</span>,<span class="st">"pH_H20_v_v"</span>,</span>
+<span id="cb42-24"><a href="#cb42-24" aria-hidden="true" tabindex="-1"></a>        <span class="st">"pH_CaCl2_m_v"</span>,<span class="st">"pH_CaCl2_v_v"</span>,</span>
+<span id="cb42-25"><a href="#cb42-25" aria-hidden="true" tabindex="-1"></a>        <span class="st">"EC_m_v"</span>,<span class="st">"EC_v_v"</span>)</span>
+<span id="cb42-26"><a href="#cb42-26" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>            Sand                                                                      
+statistic   6752.5                                                                    
+parameter   NULL                                                                      
+p.value     0.3346511                                                                 
+null.value  0                                                                         
+alternative "two.sided"                                                               
+method      "Wilcoxon signed rank test with continuity correction"                    
+data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
+            Silt                                                                      
+statistic   5127                                                                      
+parameter   NULL                                                                      
+p.value     0.04532651                                                                
+null.value  0                                                                         
+alternative "two.sided"                                                               
+method      "Wilcoxon signed rank test with continuity correction"                    
+data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
+            Clay                                                                      
+statistic   6959                                                                      
+parameter   NULL                                                                      
+p.value     0.2391891                                                                 
+null.value  0                                                                         
+alternative "two.sided"                                                               
+method      "Wilcoxon signed rank test with continuity correction"                    
+data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
+            TC                                                                        
+statistic   1981.5                                                                    
+parameter   NULL                                                                      
+p.value     2.352856e-13                                                              
+null.value  0                                                                         
+alternative "two.sided"                                                               
+method      "Wilcoxon signed rank test with continuity correction"                    
+data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
+            TOC                                                                       
+statistic   2126.5                                                                    
+parameter   NULL                                                                      
+p.value     5.576009e-13                                                              
+null.value  0                                                                         
+alternative "two.sided"                                                               
+method      "Wilcoxon signed rank test with continuity correction"                    
+data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
+            TIC                                                                       
+statistic   185                                                                       
+parameter   NULL                                                                      
+p.value     0.8221841                                                                 
+null.value  0                                                                         
+alternative "two.sided"                                                               
+method      "Wilcoxon signed rank exact test"                                         
+data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
+            TN                                                                        
+statistic   1789                                                                      
+parameter   NULL                                                                      
+p.value     1.751707e-14                                                              
+null.value  0                                                                         
+alternative "two.sided"                                                               
+method      "Wilcoxon signed rank test with continuity correction"                    
+data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
+            pH_KCl_v_v                                                                
+statistic   8169.5                                                                    
+parameter   NULL                                                                      
+p.value     0.000294373                                                               
+null.value  0                                                                         
+alternative "two.sided"                                                               
+method      "Wilcoxon signed rank test with continuity correction"                    
+data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
+            pH_KCl_m_v                                                                
+statistic   302                                                                       
+parameter   NULL                                                                      
+p.value     0.1564885                                                                 
+null.value  0                                                                         
+alternative "two.sided"                                                               
+method      "Wilcoxon signed rank exact test"                                         
+data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
+            pH_H20_m_v                                                                
+statistic   329.5                                                                     
+parameter   NULL                                                                      
+p.value     0.04547699                                                                
+null.value  0                                                                         
+alternative "two.sided"                                                               
+method      "Wilcoxon signed rank exact test"                                         
+data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
+            pH_H20_v_v                                                                
+statistic   344.5                                                                     
+parameter   NULL                                                                      
+p.value     0.05851907                                                                
+null.value  0                                                                         
+alternative "two.sided"                                                               
+method      "Wilcoxon signed rank exact test"                                         
+data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
+            pH_CaCl2_m_v                                                              
+statistic   375                                                                       
+parameter   NULL                                                                      
+p.value     0.002458334                                                               
+null.value  0                                                                         
+alternative "two.sided"                                                               
+method      "Wilcoxon signed rank exact test"                                         
+data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
+            pH_CaCl2_v_v                                                              
+statistic   304.5                                                                     
+parameter   NULL                                                                      
+p.value     0.2701838                                                                 
+null.value  0                                                                         
+alternative "two.sided"                                                               
+method      "Wilcoxon signed rank exact test"                                         
+data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
+            EC_m_v                                                                    
+statistic   283                                                                       
+parameter   NULL                                                                      
+p.value     0.5042768                                                                 
+null.value  0                                                                         
+alternative "two.sided"                                                               
+method      "Wilcoxon signed rank exact test"                                         
+data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
+            EC_v_v                                                                    
+statistic   266                                                                       
+parameter   NULL                                                                      
+p.value     0.502761                                                                  
+null.value  0                                                                         
+alternative "two.sided"                                                               
+method      "Wilcoxon signed rank exact test"                                         
+data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"</code></pre>
+</div>
+</div>
+</section>
+<section id="transfer-functions-ph" class="level3">
+<h3 class="anchored" data-anchor-id="transfer-functions-ph">Transfer functions pH</h3>
+<p>for this analysis we don’t need the averaged Cmon data, but Depth could play the role of a covariate if necessary.</p>
+<p>Strong correlations (&gt;= .99) are observed between all pairs of pH measurement methods (&gt;= .98 when using Spearman instead of Pearson).</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>soildata_clean_fl <span class="sc">%&gt;%</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">contains</span>(<span class="st">"pH"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>  GGally<span class="sc">::</span><span class="fu">ggscatmat</span>(<span class="at">corMethod =</span> <span class="fu">c</span>(<span class="st">"pearson"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="FlandersDS-report_files/figure-html/scatmat-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="statistical-analyses" class="level2">
+<h2 class="anchored" data-anchor-id="statistical-analyses">Statistical analyses</h2>
 </section>
 
 </main>
