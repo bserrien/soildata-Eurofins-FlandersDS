@@ -760,160 +760,60 @@ $EC_v_v</code></pre>
 </div>
 <p>Question: For the comparison between Cmon and LUCAS; should a TF be developed to translate (predict) values between them or are descriptive statistics enough? Eg. Bland-Altman, Wilcox-test.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>compare_schemes_wilcox <span class="ot">&lt;-</span> <span class="cf">function</span>(vrb) {</span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  data_wide <span class="ot">&lt;-</span> soildata_flds <span class="sc">%&gt;%</span></span>
-<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(LUCAS_PlotID, SampScheme, <span class="fu">all_of</span>(vrb)) <span class="sc">%&gt;%</span></span>
-<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">all_of</span>(vrb), <span class="sc">~</span> <span class="fu">as.numeric</span>(.x))) <span class="sc">%&gt;%</span></span>
-<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> SampScheme, <span class="at">values_from =</span> <span class="fu">all_of</span>(vrb),</span>
-<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>                <span class="at">names_prefix =</span> <span class="fu">paste0</span>(vrb, <span class="st">"_"</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(</span>
-<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>      <span class="sc">!</span><span class="fu">is.na</span>(.data[[<span class="fu">paste0</span>(vrb,<span class="st">"_Cmon"</span>)]]),</span>
-<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>      <span class="sc">!</span><span class="fu">is.na</span>(.data[[<span class="fu">paste0</span>(vrb,<span class="st">"_LUCAS"</span>)]])</span>
-<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">wilcox.test</span>(</span>
-<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>    data_wide[[<span class="fu">paste0</span>(vrb,<span class="st">"_Cmon"</span>)]],</span>
-<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>    data_wide[[<span class="fu">paste0</span>(vrb,<span class="st">"_LUCAS"</span>)]],</span>
-<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">paired =</span> T</span>
-<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a><span class="co"># apply function</span></span>
-<span id="cb42-19"><a href="#cb42-19" aria-hidden="true" tabindex="-1"></a><span class="fu">sapply</span>(</span>
-<span id="cb42-20"><a href="#cb42-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">FUN =</span> compare_schemes_wilcox,</span>
-<span id="cb42-21"><a href="#cb42-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">X =</span> <span class="fu">c</span>(<span class="st">"Sand"</span>,<span class="st">"Silt"</span>,<span class="st">"Clay"</span>,<span class="st">"TC"</span>,<span class="st">"TOC"</span>,<span class="st">"TIC"</span>,<span class="st">"TN"</span>,</span>
-<span id="cb42-22"><a href="#cb42-22" aria-hidden="true" tabindex="-1"></a>        <span class="st">"pH_KCl_v_v"</span>,<span class="st">"pH_KCl_m_v"</span>,</span>
-<span id="cb42-23"><a href="#cb42-23" aria-hidden="true" tabindex="-1"></a>        <span class="st">"pH_H20_m_v"</span>,<span class="st">"pH_H20_v_v"</span>,</span>
-<span id="cb42-24"><a href="#cb42-24" aria-hidden="true" tabindex="-1"></a>        <span class="st">"pH_CaCl2_m_v"</span>,<span class="st">"pH_CaCl2_v_v"</span>,</span>
-<span id="cb42-25"><a href="#cb42-25" aria-hidden="true" tabindex="-1"></a>        <span class="st">"EC_m_v"</span>,<span class="st">"EC_v_v"</span>)</span>
-<span id="cb42-26"><a href="#cb42-26" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># to be decided: statistical comparison with a Wilcox test (location-shift)</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="co"># =&gt; need to apply a multiple-comparison correction (15 variables tested)</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>compare_schemes_wilcox <span class="ot">&lt;-</span> <span class="cf">function</span>(vrb) {</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>  data_wide <span class="ot">&lt;-</span> soildata_flds <span class="sc">%&gt;%</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(LUCAS_PlotID, SampScheme, <span class="fu">all_of</span>(vrb)) <span class="sc">%&gt;%</span></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">all_of</span>(vrb), <span class="sc">~</span> <span class="fu">as.numeric</span>(.x))) <span class="sc">%&gt;%</span></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> SampScheme, <span class="at">values_from =</span> <span class="fu">all_of</span>(vrb),</span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>                <span class="at">names_prefix =</span> <span class="fu">paste0</span>(vrb, <span class="st">"_"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(</span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>      <span class="sc">!</span><span class="fu">is.na</span>(.data[[<span class="fu">paste0</span>(vrb,<span class="st">"_Cmon"</span>)]]),</span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>      <span class="sc">!</span><span class="fu">is.na</span>(.data[[<span class="fu">paste0</span>(vrb,<span class="st">"_LUCAS"</span>)]])</span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">wilcox.test</span>(</span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a>    data_wide[[<span class="fu">paste0</span>(vrb,<span class="st">"_Cmon"</span>)]],</span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>    data_wide[[<span class="fu">paste0</span>(vrb,<span class="st">"_LUCAS"</span>)]],</span>
+<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">paired =</span> T, <span class="at">conf.int =</span> T, <span class="at">correct =</span> T,</span>
+<span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span> broom<span class="sc">::</span><span class="fu">tidy</span>()</span>
+<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb42-19"><a href="#cb42-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb42-20"><a href="#cb42-20" aria-hidden="true" tabindex="-1"></a><span class="co"># apply function</span></span>
+<span id="cb42-21"><a href="#cb42-21" aria-hidden="true" tabindex="-1"></a><span class="fu">sapply</span>(</span>
+<span id="cb42-22"><a href="#cb42-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">FUN =</span> compare_schemes_wilcox,</span>
+<span id="cb42-23"><a href="#cb42-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">X =</span> <span class="fu">c</span>(<span class="st">"Sand"</span>,<span class="st">"Silt"</span>,<span class="st">"Clay"</span>,<span class="st">"TC"</span>,<span class="st">"TOC"</span>,<span class="st">"TIC"</span>,<span class="st">"TN"</span>,</span>
+<span id="cb42-24"><a href="#cb42-24" aria-hidden="true" tabindex="-1"></a>        <span class="st">"pH_KCl_v_v"</span>,<span class="st">"pH_KCl_m_v"</span>,</span>
+<span id="cb42-25"><a href="#cb42-25" aria-hidden="true" tabindex="-1"></a>        <span class="st">"pH_H20_m_v"</span>,<span class="st">"pH_H20_v_v"</span>,</span>
+<span id="cb42-26"><a href="#cb42-26" aria-hidden="true" tabindex="-1"></a>        <span class="st">"pH_CaCl2_m_v"</span>,<span class="st">"pH_CaCl2_v_v"</span>,</span>
+<span id="cb42-27"><a href="#cb42-27" aria-hidden="true" tabindex="-1"></a>        <span class="st">"EC_m_v"</span>,<span class="st">"EC_v_v"</span>)</span>
+<span id="cb42-28"><a href="#cb42-28" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span> <span class="fu">t</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb42-29"><a href="#cb42-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb42-30"><a href="#cb42-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(estimate, p.value, conf.low, conf.high) <span class="sc">%&gt;%</span></span>
+<span id="cb42-31"><a href="#cb42-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="at">digits =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>            Sand                                                                      
-statistic   6752.5                                                                    
-parameter   NULL                                                                      
-p.value     0.3346511                                                                 
-null.value  0                                                                         
-alternative "two.sided"                                                               
-method      "Wilcoxon signed rank test with continuity correction"                    
-data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
-            Silt                                                                      
-statistic   5127                                                                      
-parameter   NULL                                                                      
-p.value     0.04532651                                                                
-null.value  0                                                                         
-alternative "two.sided"                                                               
-method      "Wilcoxon signed rank test with continuity correction"                    
-data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
-            Clay                                                                      
-statistic   6959                                                                      
-parameter   NULL                                                                      
-p.value     0.2391891                                                                 
-null.value  0                                                                         
-alternative "two.sided"                                                               
-method      "Wilcoxon signed rank test with continuity correction"                    
-data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
-            TC                                                                        
-statistic   1981.5                                                                    
-parameter   NULL                                                                      
-p.value     2.352856e-13                                                              
-null.value  0                                                                         
-alternative "two.sided"                                                               
-method      "Wilcoxon signed rank test with continuity correction"                    
-data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
-            TOC                                                                       
-statistic   2126.5                                                                    
-parameter   NULL                                                                      
-p.value     5.576009e-13                                                              
-null.value  0                                                                         
-alternative "two.sided"                                                               
-method      "Wilcoxon signed rank test with continuity correction"                    
-data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
-            TIC                                                                       
-statistic   185                                                                       
-parameter   NULL                                                                      
-p.value     0.8221841                                                                 
-null.value  0                                                                         
-alternative "two.sided"                                                               
-method      "Wilcoxon signed rank exact test"                                         
-data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
-            TN                                                                        
-statistic   1789                                                                      
-parameter   NULL                                                                      
-p.value     1.751707e-14                                                              
-null.value  0                                                                         
-alternative "two.sided"                                                               
-method      "Wilcoxon signed rank test with continuity correction"                    
-data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
-            pH_KCl_v_v                                                                
-statistic   8169.5                                                                    
-parameter   NULL                                                                      
-p.value     0.000294373                                                               
-null.value  0                                                                         
-alternative "two.sided"                                                               
-method      "Wilcoxon signed rank test with continuity correction"                    
-data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
-            pH_KCl_m_v                                                                
-statistic   302                                                                       
-parameter   NULL                                                                      
-p.value     0.1564885                                                                 
-null.value  0                                                                         
-alternative "two.sided"                                                               
-method      "Wilcoxon signed rank exact test"                                         
-data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
-            pH_H20_m_v                                                                
-statistic   329.5                                                                     
-parameter   NULL                                                                      
-p.value     0.04547699                                                                
-null.value  0                                                                         
-alternative "two.sided"                                                               
-method      "Wilcoxon signed rank exact test"                                         
-data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
-            pH_H20_v_v                                                                
-statistic   344.5                                                                     
-parameter   NULL                                                                      
-p.value     0.05851907                                                                
-null.value  0                                                                         
-alternative "two.sided"                                                               
-method      "Wilcoxon signed rank exact test"                                         
-data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
-            pH_CaCl2_m_v                                                              
-statistic   375                                                                       
-parameter   NULL                                                                      
-p.value     0.002458334                                                               
-null.value  0                                                                         
-alternative "two.sided"                                                               
-method      "Wilcoxon signed rank exact test"                                         
-data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
-            pH_CaCl2_v_v                                                              
-statistic   304.5                                                                     
-parameter   NULL                                                                      
-p.value     0.2701838                                                                 
-null.value  0                                                                         
-alternative "two.sided"                                                               
-method      "Wilcoxon signed rank exact test"                                         
-data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
-            EC_m_v                                                                    
-statistic   283                                                                       
-parameter   NULL                                                                      
-p.value     0.5042768                                                                 
-null.value  0                                                                         
-alternative "two.sided"                                                               
-method      "Wilcoxon signed rank exact test"                                         
-data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"
-            EC_v_v                                                                    
-statistic   266                                                                       
-parameter   NULL                                                                      
-p.value     0.502761                                                                  
-null.value  0                                                                         
-alternative "two.sided"                                                               
-method      "Wilcoxon signed rank exact test"                                         
-data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCAS")]]"</code></pre>
+<pre><code>             estimate p.value conf.low conf.high
+Sand              0.2    0.33    -0.22      0.67
+Silt            -0.42   0.045    -0.87  -5.6e-05
+Clay             0.15    0.24     -0.1      0.38
+TC               -2.2 2.4e-13     -3.1      -1.5
+TOC              -2.2 5.6e-13     -3.1      -1.5
+TIC              0.02    0.82    -0.18      0.21
+TN              -0.18 1.8e-14    -0.25     -0.13
+pH_KCl_v_v      0.057 0.00029    0.028      0.09
+pH_KCl_m_v       0.07    0.16   -0.016      0.19
+pH_H20_m_v      0.075   0.045   0.0025      0.16
+pH_H20_v_v       0.08   0.059  -0.0017      0.18
+pH_CaCl2_m_v     0.13  0.0025    0.048      0.23
+pH_CaCl2_v_v    0.055    0.27   -0.027      0.21
+EC_m_v            4.4     0.5     -8.6        17
+EC_v_v            2.3     0.5     -5.3        11</code></pre>
 </div>
 </div>
 </section>
 <section id="transfer-functions-ph" class="level3">
 <h3 class="anchored" data-anchor-id="transfer-functions-ph">Transfer functions pH</h3>
-<p>for this analysis we don’t need the averaged Cmon data, but Depth could play the role of a covariate if necessary.</p>
-<p>Strong correlations (&gt;= .99) are observed between all pairs of pH measurement methods (&gt;= .98 when using Spearman instead of Pearson).</p>
+<p>For this analysis we don’t need the averaged Cmon data because we need to compare methods that are measured at each depth, but depth could play the role of a covariate if necessary. Strong correlations (&gt;= .99) are observed between all pairs of pH measurement methods (&gt;= .98 when using Spearman instead of Pearson).</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>soildata_clean_fl <span class="sc">%&gt;%</span></span>
 <span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">contains</span>(<span class="st">"pH"</span>)) <span class="sc">%&gt;%</span></span>
@@ -928,8 +828,8 @@ data.name   "data_wide[[paste0(vrb, "_Cmon")]] and data_wide[[paste0(vrb, "_LUCA
 </div>
 </section>
 </section>
-<section id="statistical-analyses" class="level2">
-<h2 class="anchored" data-anchor-id="statistical-analyses">Statistical analyses</h2>
+<section id="how-to-use-these-data-in-the-simulation-experiment" class="level2">
+<h2 class="anchored" data-anchor-id="how-to-use-these-data-in-the-simulation-experiment">How to use these data in the simulation experiment?</h2>
 </section>
 
 </main>
