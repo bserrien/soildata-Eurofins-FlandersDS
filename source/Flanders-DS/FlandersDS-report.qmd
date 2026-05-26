@@ -1,6 +1,8 @@
 ---
 title: "Exploratory analysis Flanders double-sampling study"
-format: html
+format: 
+  html:
+    keep-md: true
 ---
 
 ## 
