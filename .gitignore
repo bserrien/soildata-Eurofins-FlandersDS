@@ -3,5 +3,8 @@
 .RData
 .Ruserdata
 
+# don't track the data folder
+data/*
+
 # personal folder not for github
 archive/*
