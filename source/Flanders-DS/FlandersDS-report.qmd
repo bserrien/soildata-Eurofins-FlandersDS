@@ -1,5 +1,6 @@
 ---
 title: "Exploratory analysis Flanders double-sampling study"
+toc: true
 format: 
   html:
     keep-md: false
