@@ -1,6 +1,31 @@
 ---
 title: "Exploratory analysis Eurofins data"
-format: html
+format: 
+  html:
+    keep-md: false
+toc: true
 ---
 
-## 
+This short report contains my exploratory work with the Eurofins study and contains some questions on how the data should be used.
+
+```{r setup, echo = F, warning = F, messages = F}
+
+library(tidyverse) |> suppressPackageStartupMessages()
+library(here) |> suppressPackageStartupMessages()
+library(sf) |> suppressPackageStartupMessages()
+library(inbospatial) |> suppressPackageStartupMessages()
+library(units) |> suppressPackageStartupMessages()
+```
+
+
+
+## Data import and inspection
+
+The dataset contains three csv files.
+
+
+
+
+
+
+
