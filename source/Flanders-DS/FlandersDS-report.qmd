@@ -5,8 +5,6 @@ format:
     keep-md: false
 ---
 
-## 
-
 This short report contains my exploratory work with the Flanders double-sampling study and contains some questions on how the data should be used.
 
 ```{r setup, echo = F, warning = F, messages = F}
