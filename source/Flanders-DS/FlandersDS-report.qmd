@@ -4,3 +4,312 @@ format: html
 ---
 
 ## 
+
+This short report contains my exploratory work with the Flanders double-sampling study and contains some questions on how the data should be used.
+
+```{r setup, echo = F, warning = F, messages = F}
+
+library(tidyverse) |> suppressPackageStartupMessages()
+library(here) |> suppressPackageStartupMessages()
+library(sf) |> suppressPackageStartupMessages()
+library(inbospatial) |> suppressPackageStartupMessages()
+library(units) |> suppressPackageStartupMessages()
+```
+
+## Data import and inspection
+
+The dataset contains three csv files.
+
+### (1) Sampling points
+
+```{r data-import1}
+
+folder_flds <- here("data", "Flanders_Double_Sampling_Data")
+
+# sampling points
+sampling_points <- read_delim(
+  here(folder_flds,
+       "EJPsoil_LUCAS22_Double_sampling_BE_Flanders_Sampling_Points_list.csv"),
+  delim = ";",
+  col_types = cols(
+    # import as characters to fix issues with different notation:
+    # both . and , are used as decimal character ???
+    WGS84Latitude = col_character(),
+    WGS84Longitude = col_character(),
+    Elevation = col_character()
+  )
+)
+glimpse(sampling_points)
+```
+
+Little data cleaning and formatting as `sf` object:
+
+```{r data-cleaning1}
+sampling_points_clean <- sampling_points %>%
+  mutate(
+    across(c(WGS84Latitude, WGS84Longitude, Elevation), 
+           ~ as.numeric(gsub(",", ".", .x)))
+  ) %>%
+  st_as_sf(coords = c("WGS84Longitude", "WGS84Latitude"),
+           crs = "WGS84") %>%
+  select(LUCAS_PlotID, Town, Elevation, contains("LU"), RSG, Bio_Point)
+
+glimpse(sampling_points_clean)
+```
+
+Five data points lie in Wallonia and 1 in Brussels. Question: Do we need to retain them for the comparison of sampling schemes (LUCAS vs. Cmon)?
+
+```{r data-cleaning2}
+
+# import provinces of Flanders
+ogc_vrbg <- "https://geo.api.vlaanderen.be/VRBG2025/ogc/features/v1/"
+provinces <- get_feature_ogc(
+  url = ogc_vrbg,
+  collection = "Refprv",
+  crs = "EPSG:31370"
+) %>% st_transform(crs = "WGS84")
+
+# print points outside Flanders
+outside_idx <- st_disjoint(
+  sampling_points_clean, 
+  st_union(provinces), 
+  sparse = FALSE
+)
+sampling_points_clean[outside_idx, ] %>%
+  st_drop_geometry() %>%
+  select(Town) %>%
+  print()
+
+# filter on points inside Flanders (N = 160)
+sampling_points_fl <- st_filter(
+  sampling_points_clean,
+  provinces
+)
+ggplot() +
+  geom_sf(data = provinces) +
+  geom_sf(data = sampling_points_fl)
+```
+
+### (2) Soildata
+
+```{r data-import2, message = F}
+soildata <- read_csv2(
+  here(folder_flds,
+       "EJPsoil_LUCAS22_Double_sampling_BE_Flanders_Soildata.csv")
+)
+glimpse(soildata)
+```
+
+Little data cleaning step and filtering observations. Questions/remarks: Do we need to retain the data from the strooisel-laag? There is 1 plot with 6 observations, are these partial duplicates? There are two points that are listed in the previous csv file but have no corresponding records in the soildata csv.
+
+```{r data-cleaning3}
+# Depth data were formatted as a date (probably a setting from Excel/GSheet?)
+soildata_clean <- soildata %>%
+  mutate(
+    Depth = case_when(Depth == "okt/30" ~ "10-30", 
+                      TRUE ~ Depth)
+  )
+
+# 136 plots have 3 observations (2*Cmon + 1*LUCAS), 29 plots have 5 observations (mineral + organic matrix) and 1 plot has 6 observations (partial duplicates?)
+soildata_clean %>%
+  summarise(.by = LUCAS_PlotID, N = n()) %>%
+  summarise(.by = N, plots = n())
+
+# selecting soildata: remove strooisel-laag, keep only points in Flanders and remove partial duplicates
+soildata_clean_fl <- soildata_clean %>%
+  filter(
+    !grepl("strooisel", tolower(FieldSampleID)),
+    LUCAS_PlotID %in% sampling_points_fl$LUCAS_PlotID
+  ) %>%
+  distinct(LUCAS_PlotID, Depth, .keep_all = T)
+
+# there are 2 points that appear in the sampling_points object but that don't appear in the soildata:
+sampling_points_fl %>%
+  filter(!(LUCAS_PlotID %in% soildata_clean_fl$LUCAS_PlotID)) %>%
+  st_drop_geometry() %>%
+  select(LUCAS_PlotID, Town) %>%
+  print()
+```
+
+Question: Why are some TOC values sometimes larger than TC? (is TC not the sum of TOC and TIC?; is there a rounding issue?) Missing values in TIC when TC and TOC are both observed, can you just use TC - TOC as imputed value? 
+
+```{r question-TC}
+soildata_clean_fl %>%
+  mutate(
+    TC  = janitor::round_half_up(TC, 1),
+    TOC = janitor::round_half_up(TOC, 1),
+    TIC = janitor::round_half_up(TIC, 1)
+  ) %>%
+  filter(TOC > TC) %>%
+  select(LUCAS_PlotID, TC, TOC, TIC)
+```
+
+Question: To compare LUCAS vs. Cmon, should we combine the two Cmon measurements? Can you take the weighted average of the 0-10 cm sample and the 10-30 cm sample (with respective weights 1/3 and 2/3) to get an average for the 0-30 cm depth?  
+
+```{r question-Cmon-avg}
+# weighted average for Cmon sampling scheme:
+soildata_clean_fl_avg <- soildata_clean_fl %>%
+  mutate(
+    weights = case_when(Depth == "0-10"  ~ 1/3,
+                        Depth == "10-30" ~ 2/3,
+                        Depth == "0-30"  ~ 1),
+    .after = Depth
+  ) %>%
+  summarise(
+    .by = c(LUCAS_PlotID, SampScheme, Matrix),
+    Depth = "0-30",
+    Thickness = sum(Thickness),
+    across(c(Sand, Silt, Clay, TC, TIC, TOC, TN, 
+             contains("pH"), contains("EC")), 
+           ~ weighted.mean(.x, w = weights, na.rm = T))
+  ) %>%
+  mutate(
+    across(c(Sand, Silt, Clay, TC, TIC, TOC, TN, 
+             contains("pH"), contains("EC")),
+           ~ replace_when(.x, is.nan(.x) ~ NA_real_))
+  )
+```
+
+### Bulk density
+
+```{r data-import3, message = F}
+bulkdens <- read_csv2(
+  here(folder_flds,
+       "EJPsoil_LUCAS22_Double_sampling_BE_Flanders_Bulk_density.csv")
+)
+glimpse(bulkdens)
+```
+
+Little data cleaning step and weighted-average:
+
+```{r data-cleaning4}
+bulkdens_clean <- bulkdens %>%
+  mutate(
+    across(c(contains("BD_"), contains("SWC_")), ~ as.numeric(.x))
+  ) %>%
+  mutate(
+    weights = case_when(Depth == "0-10"  ~ 1/3,
+                        Depth == "10-30" ~ 2/3,
+                        Depth == "0-30"  ~ 1),
+    .after = Depth
+  ) %>%
+  summarise(
+    .by = LUCAS_PlotID,
+    Depth = "0-30",
+    SampScheme = "Cmon",
+    across(c(contains("BD_"), contains("SWC_")), 
+           ~ weighted.mean(.x, w = weights, na.rm = T))
+  )
+```
+
+
+### Combine datasets and some further cleaning
+
+```{r combine-datasets}
+soildata_flds <- soildata_clean_fl_avg %>%
+  left_join(sampling_points_fl, by = "LUCAS_PlotID") %>%
+  left_join(bulkdens_clean, by = c("LUCAS_PlotID","Depth","SampScheme")) %>%
+  select(
+    LUCAS_PlotID, Town, Elevation, geometry, LUCAS_LU, FieldObs_LU, RSG, 
+    #FieldSampleID, LabSampleID, 
+    SampScheme, Depth, Matrix,       
+    Thickness, Sand, Silt, Clay, TC, TIC, TOC, TN, 
+    contains("pH_"), contains("EC_"),
+    #LayerID, 
+    BD_mean, BD_sd, BD_CV, SWC_volp_mean, SWC_volp_sd
+  ) %>%
+  mutate(
+    Thickness = set_units(Thickness, "cm"),
+    Elevation = set_units(Elevation, "m"),
+    Sand = set_units(Sand, "%"),
+    Silt = set_units(Silt, "%"),
+    Clay = set_units(Clay, "%"),
+    TC = set_units(TC, "g/kg"),
+    TIC = set_units(TIC, "g/kg"),
+    TOC = set_units(TOC, "g/kg"),
+    TN = set_units(TN, "g/kg"),
+    EC_m_v = set_units(EC_m_v, "µS/cm"),
+    EC_v_v = set_units(EC_v_v, "µS/cm"),
+    BD_mean = set_units(BD_mean, "g/cm³"),
+    BD_sd = set_units(BD_sd, "g/cm³"),
+    BD_CV = set_units(BD_CV, "g/cm³"),
+    SWC_volp_mean = set_units(SWC_volp_mean, "%"),
+    SWC_volp_sd = set_units(SWC_volp_sd, "%")
+  )
+
+summary(soildata_flds)
+```
+
+## Data exploration
+
+### Comparing LUCAS & Cmon sampling schemes
+
+The graphs below show a scatter plot and loess smoother for the parameter measured with LUCAS vs. the Cmon (weighted average). The bisector is added for reference. Detection of outliers is performed with the Minimum Covariance Determinant (robust outlier detection; `performance` package).
+
+```{r comparing-lucas-cmon, warning = F, message = F}
+
+# plot + outlier detection with Minimum Covariance Determinant
+compare_schemes <- function(vrb) {
+  data_wide <- soildata_flds %>%
+    select(LUCAS_PlotID, SampScheme, all_of(vrb)) %>%
+    pivot_wider(names_from = SampScheme, values_from = all_of(vrb),
+                names_prefix = paste0(vrb, "_")) %>%
+    filter(
+      !is.na(.data[[paste0(vrb,"_Cmon")]]),
+      !is.na(.data[[paste0(vrb,"_LUCAS")]])
+    ) 
+  outl <- performance::check_outliers(
+    data_wide %>% 
+      select(-LUCAS_PlotID), 
+    method = "mcd", percentage_central = .75,
+    verbose = TRUE
+  )
+  data_wide$outlier <- FALSE
+  data_wide$outlier[which(outl)] <- TRUE
+  
+  data_wide %>%
+    mutate(
+      lab_outl = case_when(outlier ~ LUCAS_PlotID, TRUE ~ NA_real_)
+    ) %>%
+    ggplot(aes(.data[[paste0(vrb,"_Cmon")]], 
+               .data[[paste0(vrb,"_LUCAS")]], 
+               color = outlier)) +
+    geom_point() +
+    geom_smooth(
+      inherit.aes = F,
+      aes(.data[[paste0(vrb,"_Cmon")]], 
+               .data[[paste0(vrb,"_LUCAS")]]),
+      method = "loess", color = "grey"
+    ) +
+    ggrepel::geom_text_repel(aes(label = lab_outl), show.legend = F,
+                             size = 2) +
+    geom_abline(slope = 1, intercept = 0, lty = 2)
+}
+
+# apply function
+compare_schemes("Sand")
+compare_schemes("Silt")
+compare_schemes("Clay")
+compare_schemes("TC")
+compare_schemes("TOC")
+compare_schemes("TIC")
+compare_schemes("TN")
+compare_schemes("pH_KCl_v_v")
+compare_schemes("pH_KCl_m_v")
+compare_schemes("pH_H20_m_v")
+compare_schemes("pH_H20_v_v")
+compare_schemes("pH_CaCl2_m_v")
+compare_schemes("pH_CaCl2_v_v")
+compare_schemes("EC_m_v")
+compare_schemes("EC_v_v")
+```
+
+
+
+
+
+
+
+
+
+
