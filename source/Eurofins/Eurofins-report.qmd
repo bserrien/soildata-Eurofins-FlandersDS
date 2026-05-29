@@ -1,8 +1,9 @@
 ---
 title: "Exploratory analysis Eurofins data"
 format: 
-  pdf
-toc: false
+  html: 
+    embed-resources: true
+toc: true
 ---
 
 ```{r setup, echo = F, warning = F, messages = F}
