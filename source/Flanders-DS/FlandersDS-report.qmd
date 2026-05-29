@@ -346,19 +346,18 @@ sapply(
 ) %>% t() %>%
   as.data.frame() %>%
   select(estimate, p.value, conf.low, conf.high) %>%
+  # FDR correction
+  mutate(q.value = p.adjust(p.value, method = "BH")) %>%
   print(digits = 2)
 ```
 
 ### Transfer functions pH
 
-For this analysis we don't need the averaged Cmon data because we need to compare methods that are measured at each depth, but depth could play the role of a covariate if necessary. Strong correlations (>= .99) are observed between all pairs of pH measurement methods (>= .98 when using Spearman instead of Pearson).  
+For this analysis we don't need the averaged Cmon data because we need to compare methods that are measured at each depth, but depth could play the role of a covariate if necessary. Strong correlations (>= .98) are observed between all pairs of pH measurement methods (same when Spearman instead of Pearson).
 
 ```{r scatmat, warning = F}
 soildata_clean_fl %>%
   select(contains("pH")) %>%
   GGally::ggscatmat(corMethod = c("pearson"))
 ```
-
-## How to use these data in the simulation experiment?
-
 
