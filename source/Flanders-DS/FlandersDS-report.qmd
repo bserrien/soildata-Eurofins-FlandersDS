@@ -1,9 +1,8 @@
 ---
 title: "Exploratory analysis Flanders double-sampling study"
-toc: true
+toc: false
 format: 
-  html:
-    keep-md: false
+  pdf
 ---
 
 This short report contains my exploratory work with the Flanders double-sampling study and contains some questions on how the data should be used.
