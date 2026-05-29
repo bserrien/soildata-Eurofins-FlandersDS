@@ -97,7 +97,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#comparing-lucas-cmon-sampling-schemes" id="toc-comparing-lucas-cmon-sampling-schemes" class="nav-link" data-scroll-target="#comparing-lucas-cmon-sampling-schemes">Comparing LUCAS &amp; Cmon sampling schemes</a></li>
   <li><a href="#transfer-functions-ph" id="toc-transfer-functions-ph" class="nav-link" data-scroll-target="#transfer-functions-ph">Transfer functions pH</a></li>
   </ul></li>
-  <li><a href="#how-to-use-these-data-in-the-simulation-experiment" id="toc-how-to-use-these-data-in-the-simulation-experiment" class="nav-link" data-scroll-target="#how-to-use-these-data-in-the-simulation-experiment">How to use these data in the simulation experiment?</a></li>
   </ul>
 </nav>
 </div>
@@ -808,30 +807,32 @@ $EC_v_v</code></pre>
 <span id="cb42-28"><a href="#cb42-28" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span> <span class="fu">t</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb42-29"><a href="#cb42-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb42-30"><a href="#cb42-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(estimate, p.value, conf.low, conf.high) <span class="sc">%&gt;%</span></span>
-<span id="cb42-31"><a href="#cb42-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="at">digits =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb42-31"><a href="#cb42-31" aria-hidden="true" tabindex="-1"></a>  <span class="co"># FDR correction</span></span>
+<span id="cb42-32"><a href="#cb42-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">q.value =</span> <span class="fu">p.adjust</span>(p.value, <span class="at">method =</span> <span class="st">"BH"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb42-33"><a href="#cb42-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="at">digits =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>             estimate p.value conf.low conf.high
-Sand              0.2    0.33    -0.22      0.67
-Silt            -0.42   0.045    -0.87  -5.6e-05
-Clay             0.15    0.24     -0.1      0.38
-TC               -2.2 2.4e-13     -3.1      -1.5
-TOC              -2.2 5.6e-13     -3.1      -1.5
-TIC              0.02    0.82    -0.18      0.21
-TN              -0.18 1.8e-14    -0.25     -0.13
-pH_KCl_v_v      0.057 0.00029    0.028      0.09
-pH_KCl_m_v       0.07    0.16   -0.016      0.19
-pH_H20_m_v      0.075   0.045   0.0025      0.16
-pH_H20_v_v       0.08   0.059  -0.0017      0.18
-pH_CaCl2_m_v     0.13  0.0025    0.048      0.23
-pH_CaCl2_v_v    0.055    0.27   -0.027      0.21
-EC_m_v            4.4     0.5     -8.6        17
-EC_v_v            2.3     0.5     -5.3        11</code></pre>
+<pre><code>             estimate p.value conf.low conf.high q.value
+Sand              0.2    0.33    -0.22      0.67 4.2e-01
+Silt            -0.42   0.045    -0.87  -5.6e-05 9.7e-02
+Clay             0.15    0.24     -0.1      0.38 3.6e-01
+TC               -2.2 2.4e-13     -3.1      -1.5 1.8e-12
+TOC              -2.2 5.6e-13     -3.1      -1.5 2.8e-12
+TIC              0.02    0.82    -0.18      0.21 8.2e-01
+TN              -0.18 1.8e-14    -0.25     -0.13 2.6e-13
+pH_KCl_v_v      0.057 0.00029    0.028      0.09 1.1e-03
+pH_KCl_m_v       0.07    0.16   -0.016      0.19 2.6e-01
+pH_H20_m_v      0.075   0.045   0.0025      0.16 9.7e-02
+pH_H20_v_v       0.08   0.059  -0.0017      0.18 1.1e-01
+pH_CaCl2_m_v     0.13  0.0025    0.048      0.23 7.4e-03
+pH_CaCl2_v_v    0.055    0.27   -0.027      0.21 3.7e-01
+EC_m_v            4.4     0.5     -8.6        17 5.4e-01
+EC_v_v            2.3     0.5     -5.3        11 5.4e-01</code></pre>
 </div>
 </div>
 </section>
 <section id="transfer-functions-ph" class="level3">
 <h3 class="anchored" data-anchor-id="transfer-functions-ph">Transfer functions pH</h3>
-<p>For this analysis we don’t need the averaged Cmon data because we need to compare methods that are measured at each depth, but depth could play the role of a covariate if necessary. Strong correlations (&gt;= .99) are observed between all pairs of pH measurement methods (&gt;= .98 when using Spearman instead of Pearson).</p>
+<p>For this analysis we don’t need the averaged Cmon data because we need to compare methods that are measured at each depth, but depth could play the role of a covariate if necessary. Strong correlations (&gt;= .98) are observed between all pairs of pH measurement methods (same when Spearman instead of Pearson).</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>soildata_clean_fl <span class="sc">%&gt;%</span></span>
 <span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">contains</span>(<span class="st">"pH"</span>)) <span class="sc">%&gt;%</span></span>
@@ -845,9 +846,6 @@ EC_v_v            2.3     0.5     -5.3        11</code></pre>
 </div>
 </div>
 </section>
-</section>
-<section id="how-to-use-these-data-in-the-simulation-experiment" class="level2">
-<h2 class="anchored" data-anchor-id="how-to-use-these-data-in-the-simulation-experiment">How to use these data in the simulation experiment?</h2>
 </section>
 
 </main>
