@@ -236,8 +236,8 @@ spc <- data.frame(
 )
 data_granulometrics %>%
   pivot_longer_spec(spc) %>%
-  ggtern(aes(sand, silt, clay, color = label)) +
-  geom_point()
+  ggtern(aes(sand, silt, clay, group = identification, color = label)) +
+  geom_point() + geom_line(color = "black", alpha = .2)
 ```
 
 We fit the model using each of the three predictors as a linear term. 
