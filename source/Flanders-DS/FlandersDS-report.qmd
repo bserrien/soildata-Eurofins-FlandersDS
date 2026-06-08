@@ -116,6 +116,11 @@ soildata_clean %>%
   summarise(.by = LUCAS_PlotID, N = n()) %>%
   summarise(.by = N, plots = n())
 
+# partial duplicates?
+soildata_clean %>%
+  filter(.by = c(LUCAS_PlotID, Depth, SampScheme), n() > 1) %>%
+  select(LUCAS_PlotID, FieldSampleID, LabSampleID, Depth, SampScheme)
+
 # selecting soildata: remove strooisel-laag, keep only points in Flanders and remove partial duplicates
 soildata_clean_fl <- soildata_clean %>%
   filter(
