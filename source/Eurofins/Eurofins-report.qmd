@@ -102,7 +102,6 @@ mod <- brm(
   silent = 2, refresh = 0,
   data = data_silt
 )
-#### How do I get rid of the warning on RTools when rendering? I don't get any warnings in Rstudio, only when rendering to html, warning=F is already in the chunk header. R 4.6 uses Rtools45 (https://cran.r-project.org/bin/windows/base/howto-R-4.6.html) which is installed on my pc so I don't understand the error.
 
 summary(mod)
 pp_check(mod, trim = T, ndraws = 100)
@@ -173,3 +172,98 @@ ggplot(data_sims2, aes(y_true, yhat, ymin = yhat_ll, ymax = yhat_ul)) +
 ```
 
 The MAE is reasonably low I think. However, the prediction intervals are not well calibrated, they are overly conservative. We asked for a 90% prediction interval, but the PICP was 100%. We're seeing the same conservative behavior in the simulation experiment that is not based on real data. Of course in this example the Beta-regression was done on only 35 observations; reducing the uncertainty in the parameter estimates through more observation will probably reduce the prediction uncertainty.
+
+
+## Dirichlet regression
+
+The above regression treats `silt` as a single variable. However, the granulometric fractions sum to 1 and hence they should be modeled together so that the TF ($f$) preserves their sum:
+
+$$
+\begin{aligned}
+X_1 + X_2 + X_3 &= 1 \\
+(Y_1, Y_2, Y_3) &= f(X_1, X_2, X_3) \\
+Y_1 + Y_2 + Y_3 &= 1
+\end{aligned}
+$$
+
+A natural choice would be Dirichlet regression. Alternatives are log-ratio transformations (additive, centered, isometric). Let's try Dirichlet regression first.
+
+Question: when preparing the data, I noticed that the fractions don't sum up to exactly 1. In the INBO dataset, the difference is maybe just a rounding issue, but in the Eurofins dataset there seems to be a systematic difference. For now I will just normalize everything to 1 to try the Dirichlet regression.
+
+```{r}
+data_granulometrics <- inner_join(
+  data_eurofins_clean %>% 
+    select(identification, sand, silt, clay) %>%
+    mutate(total_eurofins = sand + silt + clay) %>%
+    rename(sand_eurofins = sand,
+           silt_eurofins = silt,
+           clay_eurofins = clay),
+  data_inbo_fl_clean %>% 
+    select(identification, sand, silt, clay) %>%
+    mutate(total_inbo = sand + silt + clay) %>%
+    rename(sand_inbo = sand,
+           silt_inbo = silt,
+           clay_inbo = clay), 
+  by = "identification"
+) %>%
+  mutate(across(!identification, ~ as.numeric(.x)/100))
+
+summary(data_granulometrics[,c("total_eurofins","total_inbo")])
+```
+
+```{r}
+# normalisation
+data_granulometrics <- data_granulometrics %>%
+  mutate(
+    sand_eurofins = sand_eurofins / total_eurofins,
+    silt_eurofins = silt_eurofins / total_eurofins,
+    clay_eurofins = clay_eurofins / total_eurofins,
+    total_eurofins = sand_eurofins + silt_eurofins + clay_eurofins,
+    sand_inbo = sand_inbo / total_inbo,
+    silt_inbo = silt_inbo / total_inbo,
+    clay_inbo = clay_inbo / total_inbo,
+    total_inbo = sand_inbo + clay_inbo + silt_inbo
+  )
+
+# simplex plot
+library(ggtern) %>% suppressPackageStartupMessages()
+
+spc <- data.frame(
+  .name = c("sand_eurofins", "silt_eurofins", "clay_eurofins",
+            "sand_inbo", "silt_inbo", "clay_inbo"),
+  .value = rep(c("sand", "silt", "clay"), 2),
+  label = rep(c("eurofins","inbo"), each = 3)
+)
+data_granulometrics %>%
+  pivot_longer_spec(spc) %>%
+  ggtern(aes(sand, silt, clay, group = identification, color = label)) +
+  geom_point() + geom_line(color = "black", alpha = .2)
+```
+
+We fit the model using each of the three predictors as a linear term. 
+
+```{r, eval=F}
+data_granulometrics <- within(
+  data_granulometrics,
+  {Y <- cbind(sand_eurofins, silt_eurofins, clay_eurofins)}
+)
+
+dir_mod <- brm(
+  Y ~ sand_inbo + silt_inbo + clay_inbo,
+  family = dirichlet("logit","log", refcat = "silt_eurofins"),
+  data = data_granulometrics
+)
+save(dir_mod, file = here("data/dir_mod.rda"))
+```
+
+Sampling takes a very long time and the model is not converging. We only have 35 observations for a model with 9 parameters, so that's not very surprising. Next: try the log-ratio transformation models.
+
+```{r}
+load(here("data/dir_mod.rda"))
+summary(dir_mod)
+```
+
+
+
+
+
