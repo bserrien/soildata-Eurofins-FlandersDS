@@ -1,9 +1,9 @@
 # script for importing and cleaning the Eurofins dataset
 
 # Eurofins data
-data_eurofins <- read_excel(
-  here("data", "Eurofins_comparison", 
-       "Results_and_Standards_EUROFINS_N_SIMS.xlsx"),
+data_eurofins <- readxl::read_excel(
+  here::here("data", "Eurofins_comparison", 
+             "Results_and_Standards_EUROFINS_N_SIMS.xlsx"),
   sheet = "Results_EUROFINS",
   col_types = "text"
 )
